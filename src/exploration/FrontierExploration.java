@@ -77,6 +77,7 @@ public class FrontierExploration {
         if(timeElapsed < Constants.INIT_CYCLES) {
             nextStep = RandomWalk.takeStep(agent);
             agent.getStats().setTimeSinceLastPlan(0);
+            System.out.println("Agent " + agent + " initialising with random move.");
         }
         //</editor-fold>
  
@@ -86,6 +87,7 @@ public class FrontierExploration {
             nextStep = RandomWalk.takeStep(agent);
             agent.getStats().setTimeSinceLastPlan(0);
             agent.setEnvError(false);
+            System.out.println("Agent " + agent + " stuck, making random move.");
         }
         //</editor-fold>
 
@@ -101,7 +103,9 @@ public class FrontierExploration {
         //<editor-fold defaultstate="collapsed" desc="CHECK 3: Agent isn't stuck. Is it time to replan? Have we moved on to next time cycle?">
         else if(agent.getStats().getTimeSinceLastPlan() >= Constants.REPLAN_INTERVAL)
         {
+            System.out.println("BeginnReplan##########################");
             nextStep = replan(agent, frontierExpType, timeElapsed);
+            System.out.println("Agent " + agent + " replanning.");
         }
         //</editor-fold>
 
@@ -109,6 +113,7 @@ public class FrontierExploration {
         else
         {
             nextStep = replan(agent, frontierExpType, timeElapsed);
+            System.out.println("Agent " + agent + " replanning2.");
         }
         //</editor-fold>
 
@@ -154,6 +159,7 @@ public class FrontierExploration {
         boolean foundFrontier = false;
         
         if (!agent.getSimConfig().keepAssigningRobotsToFrontiers()) {
+            System.out.println("Not keepAssigned");
             foundFrontier = (chooseFrontier(agent, true, null) == null);
             System.out.println(agent.toString() + "chooseFrontier took " + (System.currentTimeMillis()-realtimeStart2) + "ms.");
 
@@ -165,13 +171,16 @@ public class FrontierExploration {
             }
             //</editor-fold>
         } else {
+            System.out.println("keepAssigned");
             LinkedList<Integer> assignedTeammates = new LinkedList<Integer>();
             for (int i = 0; (i < agent.getAllTeammates().size()) && !foundFrontier; i++) {
+                System.out.println("Start chooseFrontier");
                 assignedTeammates = chooseFrontier(agent, true, assignedTeammates);
                 if (assignedTeammates == null)
                     foundFrontier = true;
             }
         }
+        System.out.println("Frontier choosen");
         
         if ((agent.getRole() == RobotConfig.roletype.Relay) && (agent.getState() == BasicAgent.ExploreState.GoToChild)) {
             return RoleBasedExploration.takeStep_GoToChild(agent);
@@ -219,7 +228,8 @@ public class FrontierExploration {
         // Check that we have a path, otherwise take random step
         if ((agent.getPath() == null) || 
                 agent.getPath().getPoints() == null ||
-                agent.getPath().getPoints().isEmpty())
+                agent.getPath().getPoints().isEmpty() ||
+                agent.getPath().getPoints().size() == 1)//Only Robot itself!
         {
             System.out.println(agent + " has no path, taking random step.");
             nextStep = RandomWalk.takeStep(agent);
@@ -268,10 +278,11 @@ public class FrontierExploration {
                        //(grid.obstacleWithinDistance(currFrontier.getCentre().x, currFrontier.getCentre().y, 1)))
                         !pathToFrontier.found)
                 {
-                    System.out.println(agent + "adding bad frontier " + currFrontier);
-                    agent.addBadFrontier(currFrontier);
+                    //System.out.println(agent + "adding frontier without path" + currFrontier);
+                    //agent.addBadFrontier(currFrontier);
                 } else
                 {
+                    System.out.println(agent + "adding good frontier with path" + currFrontier);
                     list.add(currFrontier);
                     counter++;
                }
@@ -381,13 +392,14 @@ public class FrontierExploration {
         // For each frontier of interest
         for(Frontier frontier : frontiers) {
             // Add own utilities
-            utilities.add(new Utility(agent.getID(),
+            Utility util = new Utility(agent.getID(),
                                       agent.getLocation(),
                                       frontier,
                                       utilityEstimate(agent.getLocation(), frontier),
-                                      null));
-            System.out.println(Constants.INDENT + "Own utility with ID " +
-                                                agent.getID() + " for frontier at " +
+                                      null);
+            utilities.add(util);
+            System.out.println(Constants.INDENT + "Own utility with Agent-ID " +
+                                                agent.getID() + " and Utility-ID "+ util.ID +"  for frontier at " +
                                                 frontier.getCentre().x + "," +
                                                 frontier.getCentre().y + " is " +
                                                 (int)utilityEstimate(agent.getLocation(), frontier));
@@ -460,7 +472,7 @@ public class FrontierExploration {
         
         @Override
         public String toString() {
-            return "Utility ID: " + ID + ", agentLocation: (" + (int)agentLocation.getX() + "," + (int)agentLocation.getX()+ "), frontier: " + frontier 
+            return "Utility ID: " + ID + ", agentLocation: (" + (int)agentLocation.getX() + "," + (int)agentLocation.getY()+ "), frontier: " + frontier 
                     + ", utility: " + utility;
         }
     }
